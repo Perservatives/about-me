@@ -1,0 +1,252 @@
+@import "tailwindcss";
+@import "@fontsource-variable/geist-mono/wght.css";
+
+@keyframes pageIn {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+    filter: blur(8px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+    filter: blur(0);
+  }
+}
+
+@keyframes pageOut {
+  from {
+    opacity: 1;
+    filter: blur(0);
+  }
+
+  to {
+    opacity: 0;
+    filter: blur(6px);
+  }
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes menuItemRise {
+  from {
+    opacity: 0;
+    transform: translateY(14px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes letterDrop {
+  from {
+    opacity: 0;
+    transform: translateY(-10px);
+    filter: blur(4px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+    filter: blur(0);
+  }
+}
+
+@keyframes rowSlide {
+  from {
+    opacity: 0;
+    transform: translateX(-16px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+@keyframes rowRise {
+  from {
+    opacity: 0;
+    transform: translateY(14px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes ageHaloPulse {
+  0%,
+  100% {
+    text-shadow: 0 0 18px rgba(255, 255, 255, 0.18);
+  }
+
+  50% {
+    text-shadow: 0 0 28px rgba(255, 255, 255, 0.42);
+  }
+}
+
+@keyframes ageFlick {
+  0% {
+    transform: scale(1.04);
+    filter: brightness(1.6);
+  }
+
+  60% {
+    filter: brightness(0.85);
+  }
+
+  100% {
+    transform: scale(1);
+    filter: brightness(1);
+  }
+}
+
+@keyframes labelReveal {
+  from {
+    opacity: 0;
+    transform: scale(0.88) translateY(16px);
+    filter: blur(10px);
+    letter-spacing: 0.72em;
+  }
+
+  to {
+    opacity: 1;
+    transform: scale(1) translateY(0);
+    filter: blur(0);
+    letter-spacing: 0.42em;
+  }
+}
+
+@keyframes docShellIn {
+  from {
+    opacity: 0;
+    transform: translateY(28px);
+    filter: blur(12px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+    filter: blur(0);
+  }
+}
+
+@layer utilities {
+  .animate-page-in {
+    animation: pageIn 0.42s cubic-bezier(0.22, 1, 0.36, 1) both;
+  }
+
+  .animate-page-out {
+    animation: pageOut 0.18s ease-out both;
+  }
+
+  .animate-fade-in {
+    animation: fadeIn 0.22s ease-out both;
+  }
+
+  .animate-menu-item {
+    animation: menuItemRise 0.42s cubic-bezier(0.22, 1, 0.36, 1) both;
+  }
+
+  .animate-letter-drop {
+    animation: letterDrop 0.55s cubic-bezier(0.22, 1, 0.36, 1) both;
+  }
+
+  .animate-row-slide {
+    animation: rowSlide 0.5s cubic-bezier(0.22, 1, 0.36, 1) both;
+  }
+
+  .animate-row-rise {
+    animation: rowRise 0.5s cubic-bezier(0.22, 1, 0.36, 1) both;
+  }
+
+  .animate-age-flick {
+    animation: ageFlick 0.42s cubic-bezier(0.22, 1, 0.36, 1) both;
+  }
+
+  .animate-label-reveal {
+    animation: labelReveal 0.75s cubic-bezier(0.22, 1, 0.36, 1) both;
+  }
+
+  .animate-doc-shell {
+    animation: docShellIn 0.72s cubic-bezier(0.22, 1, 0.36, 1) both;
+  }
+
+  .text-shadow-glow {
+    text-shadow: 0 0 22px rgba(255, 255, 255, 0.35);
+  }
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .age-hover-scope:hover .age-numeral,
+  .age-hover-scope:focus-within .age-numeral {
+    animation: ageHaloPulse 2.4s ease-in-out infinite;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .animate-page-in,
+  .animate-page-out,
+  .animate-fade-in,
+  .animate-menu-item,
+  .animate-letter-drop,
+  .animate-row-slide,
+  .animate-row-rise,
+  .animate-age-flick,
+  .animate-label-reveal,
+  .animate-doc-shell {
+    animation: none !important;
+  }
+
+  .age-hover-scope:hover .age-numeral,
+  .age-hover-scope:focus-within .age-numeral {
+    animation: none !important;
+  }
+
+  html {
+    scroll-behavior: auto;
+  }
+}
+
+@layer base {
+  html {
+    font-family: "Geist Mono Variable", ui-monospace, monospace;
+    font-size: 15px;
+    line-height: 1.7;
+    text-rendering: optimizeLegibility;
+    font-variant-numeric: tabular-nums;
+    color-scheme: dark;
+    background-color: #000;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+
+  body {
+    margin: 0;
+    background-color: #000;
+    color: #f5f5f5;
+  }
+
+  #root {
+    min-height: 100svh;
+    background-color: #000;
+  }
+
+  ::selection {
+    background: #fafafa;
+    color: #000;
+  }
+}
