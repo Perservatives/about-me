@@ -4,13 +4,41 @@
 @keyframes pageIn {
   from {
     opacity: 0;
-    transform: translateY(8px);
-    filter: blur(8px);
+    transform: translateY(10px) scale(0.992);
+    filter: blur(6px);
   }
 
   to {
     opacity: 1;
-    transform: translateY(0);
+    transform: translateY(0) scale(1);
+    filter: blur(0);
+  }
+}
+
+@keyframes pageSlideLeft {
+  from {
+    opacity: 0;
+    transform: translateX(18px);
+    filter: blur(4px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateX(0);
+    filter: blur(0);
+  }
+}
+
+@keyframes pageSlideRight {
+  from {
+    opacity: 0;
+    transform: translateX(-18px);
+    filter: blur(4px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateX(0);
     filter: blur(0);
   }
 }
@@ -146,7 +174,15 @@
 
 @layer utilities {
   .animate-page-in {
-    animation: pageIn 0.42s cubic-bezier(0.22, 1, 0.36, 1) both;
+    animation: pageIn 0.48s cubic-bezier(0.22, 1, 0.36, 1) both;
+  }
+
+  .animate-page-from-right {
+    animation: pageSlideLeft 0.48s cubic-bezier(0.22, 1, 0.36, 1) both;
+  }
+
+  .animate-page-from-left {
+    animation: pageSlideRight 0.48s cubic-bezier(0.22, 1, 0.36, 1) both;
   }
 
   .animate-page-out {
@@ -199,6 +235,8 @@
 
 @media (prefers-reduced-motion: reduce) {
   .animate-page-in,
+  .animate-page-from-left,
+  .animate-page-from-right,
   .animate-page-out,
   .animate-fade-in,
   .animate-menu-item,

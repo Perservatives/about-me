@@ -17,6 +17,7 @@ import {
   SITE_TITLE,
 } from "./constants"
 import { ContactIcon, type ContactIconKind } from "./components/ContactIcons"
+import { ParticleField, SceneChrome } from "./components/ParticleField"
 import { gradeInPacificGradeLevel, ordinalGrade } from "./lib/schoolGrade"
 import { useDecimalGregorianAgeYears } from "./hooks/useDecimalAge"
 import { formatRelative, useGithubRepos } from "./hooks/useGithubRepos"
@@ -396,16 +397,26 @@ function Slider(props: {
                 style={{ left: `${x}%` }}
                 type="button"
               >
-                <span aria-hidden className={`block h-[3px] w-[3px] rounded-full ${i === index ? "bg-transparent" : "bg-white/30"}`} />
+                <span
+                  aria-hidden
+                  className={`block rounded-full transition-[width,height,background-color,box-shadow] duration-300 ${
+                    i === index
+                      ? "h-[3px] w-[3px] bg-transparent shadow-[0_0_12px_rgba(255,255,255,0.5)]"
+                      : "h-[3px] w-[3px] bg-white/30"
+                  }`}
+                />
               </button>
             )
           })}
           <div
             aria-hidden
-            className="pointer-events-none absolute top-1/2 h-2.5 w-2.5 -translate-x-1/2 -translate-y-1/2 rounded-full bg-white transition-[left] duration-[320ms] ease-out"
+            className="pointer-events-none absolute top-1/2 h-2.5 w-2.5 -translate-x-1/2 -translate-y-1/2 rounded-full bg-white shadow-[0_0_20px_rgba(255,255,255,0.45)] transition-[left,box-shadow] duration-[320ms] ease-out"
             style={dotStyle}
           />
         </div>
+        <p className="mt-4 text-center text-[10px] font-medium uppercase tracking-[0.24em] text-white/42">
+          {pageLabel(index)}
+        </p>
       </div>
     </div>
   )
@@ -539,17 +550,29 @@ function App() {
   }, [])
 
   const currentIndex = indexOfPage(pageId)
+  const [navDirection, setNavDirection] = useState(0)
 
-  const goByIndex = useCallback((next: number) => {
-    const clamped = Math.max(0, Math.min(PAGES.length - 1, next))
-    setPageId(PAGES[clamped].id)
-  }, [])
+  const pageSurfaceKey = uiMode === "deck" ? `deck-${pageId}` : `scroll-${scrollEntryKey}`
 
-  const goToPage = useCallback((next: PageId) => {
-    setPageId(next)
-  }, [])
+  const goByIndex = useCallback(
+    (next: number) => {
+      const clamped = Math.max(0, Math.min(PAGES.length - 1, next))
+      setNavDirection(Math.sign(clamped - indexOfPage(pageId)))
+      setPageId(PAGES[clamped].id)
+    },
+    [pageId],
+  )
+
+  const goToPage = useCallback(
+    (next: PageId) => {
+      setNavDirection(Math.sign(indexOfPage(next) - indexOfPage(pageId)))
+      setPageId(next)
+    },
+    [pageId],
+  )
 
   const enterFullIndex = useCallback(() => {
+    setNavDirection(1)
     setScrollEntryKey((k) => k + 1)
     setUiMode("scroll")
   }, [])
@@ -592,8 +615,13 @@ function App() {
       ? "sticky inset-x-0 top-0 border-b border-white/10 bg-black/92 backdrop-blur-md"
       : "absolute inset-x-0 top-0")
 
+  const pageAnimCn =
+    navDirection > 0 ? "animate-page-from-right" : navDirection < 0 ? "animate-page-from-left" : "animate-page-in"
+
   return (
-    <div className="relative flex min-h-svh flex-col bg-black text-[#f5f5f5]">
+    <div className="relative isolate flex min-h-svh flex-col bg-black text-[#f5f5f5]">
+      <ParticleField navDirection={navDirection} pageKey={pageSurfaceKey} />
+      <SceneChrome />
       <a
         className="sr-only rounded-sm border border-white/40 px-3 py-1.5 text-[12px] outline-none focus:fixed focus:left-4 focus:top-4 focus:z-[60] focus:not-sr-only focus:bg-black"
         href="#main"
@@ -606,6 +634,7 @@ function App() {
           className="text-[11px] font-bold uppercase tracking-[0.2em] hover:opacity-80 focus-visible:outline focus-visible:outline-1 focus-visible:outline-white focus-visible:outline-offset-[4px]"
           onClick={() => {
             if (uiMode === "scroll") {
+              setNavDirection(-1)
               setUiMode("deck")
               setPageId("intro")
               window.scrollTo({ top: 0, behavior: prefersSmoothScroll() })
@@ -619,12 +648,12 @@ function App() {
       </header>
 
       <main
-        className={`flex flex-1 flex-col ${uiMode === "deck" ? "items-center justify-center px-6 pb-24 pt-28 sm:px-10 sm:pb-28 sm:pt-32" : "px-6 pb-20 pt-[5.65rem] sm:px-10 sm:pb-28 sm:pt-[6rem]"}`}
+        className={`relative z-10 flex flex-1 flex-col ${uiMode === "deck" ? "items-center justify-center px-6 pb-24 pt-28 sm:px-10 sm:pb-28 sm:pt-32" : "px-6 pb-20 pt-[5.65rem] sm:px-10 sm:pb-28 sm:pt-[6rem]"}`}
         id="main"
       >
         {uiMode === "deck" ? (
           <div className="w-full max-w-[640px]">
-            <div className="animate-page-in" key={pageId}>
+            <div className={pageAnimCn} key={pageId}>
               {pageId === "intro" ? <IntroPage onJump={goToPage} /> : null}
               {pageId === "bio" ? <BioPage /> : null}
               {pageId === "age" ? <AgePage ageYears={ageYears} /> : null}
