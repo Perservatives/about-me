@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react"
+import { useEffect, useSyncExternalStore } from "react"
 
 export type GithubRepo = {
   id: number
@@ -27,41 +27,91 @@ type ApiRepo = {
   archived: boolean
 }
 
-/** Live fetch of public GitHub repos (sorted by last push). */
+type CacheEntry = {
+  state: RepoState
+  listeners: Set<() => void>
+  inflight: AbortController | null
+}
+
+const caches = new Map<string, CacheEntry>()
+
+function cacheKey(username: string, limit: number): string {
+  return `${username}:${limit}`
+}
+
+function getEntry(username: string, limit: number): CacheEntry {
+  const key = cacheKey(username, limit)
+  let entry = caches.get(key)
+  if (!entry) {
+    entry = { state: { status: "loading" }, listeners: new Set(), inflight: null }
+    caches.set(key, entry)
+  }
+  return entry
+}
+
+function notify(entry: CacheEntry) {
+  for (const listener of entry.listeners) listener()
+}
+
+function parseRepos(raw: ApiRepo[], limit: number): GithubRepo[] {
+  return raw
+    .filter((r) => !r.archived && !r.fork)
+    .sort((a, b) => Date.parse(b.pushed_at) - Date.parse(a.pushed_at))
+    .slice(0, limit)
+    .map((r) => ({
+      id: r.id,
+      name: r.name,
+      htmlUrl: r.html_url,
+      description: r.description,
+      language: r.language,
+      stargazersCount: r.stargazers_count,
+      pushedAt: r.pushed_at,
+    }))
+}
+
+/** Start fetching repos early (safe to call multiple times). */
+export function prefetchGithubRepos(username: string, limit = 8): void {
+  const entry = getEntry(username, limit)
+  if (entry.state.status === "ready" || entry.inflight) return
+
+  const ctrl = new AbortController()
+  entry.inflight = ctrl
+
+  fetch(`https://api.github.com/users/${username}/repos?per_page=100&sort=pushed`, { signal: ctrl.signal })
+    .then(async (res) => {
+      if (!res.ok) {
+        const reason = res.status === 403 ? "rate-limited" : `HTTP ${res.status}`
+        throw new Error(reason)
+      }
+      const raw = (await res.json()) as ApiRepo[]
+      entry.state = { status: "ready", repos: parseRepos(raw, limit), fetchedAt: Date.now() }
+      notify(entry)
+    })
+    .catch((err: unknown) => {
+      if (ctrl.signal.aborted) return
+      entry.state = { status: "error", message: err instanceof Error ? err.message : "unknown error" }
+      notify(entry)
+    })
+    .finally(() => {
+      if (entry.inflight === ctrl) entry.inflight = null
+    })
+}
+
+/** Live fetch of public GitHub repos (sorted by last push). Uses a shared cache. */
 export function useGithubRepos(username: string, limit = 8): RepoState {
-  const [state, setState] = useState<RepoState>({ status: "loading" })
+  const entry = getEntry(username, limit)
+
+  const state = useSyncExternalStore(
+    (onStoreChange) => {
+      entry.listeners.add(onStoreChange)
+      return () => entry.listeners.delete(onStoreChange)
+    },
+    () => entry.state,
+    () => entry.state,
+  )
 
   useEffect(() => {
-    const ctrl = new AbortController()
-
-    fetch(`https://api.github.com/users/${username}/repos?per_page=100&sort=pushed`, { signal: ctrl.signal })
-      .then(async (res) => {
-        if (!res.ok) {
-          const reason = res.status === 403 ? "rate-limited" : `HTTP ${res.status}`
-          throw new Error(reason)
-        }
-        const raw = (await res.json()) as ApiRepo[]
-        const repos: GithubRepo[] = raw
-          .filter((r) => !r.archived && !r.fork)
-          .sort((a, b) => Date.parse(b.pushed_at) - Date.parse(a.pushed_at))
-          .slice(0, limit)
-          .map((r) => ({
-            id: r.id,
-            name: r.name,
-            htmlUrl: r.html_url,
-            description: r.description,
-            language: r.language,
-            stargazersCount: r.stargazers_count,
-            pushedAt: r.pushed_at,
-          }))
-        setState({ status: "ready", repos, fetchedAt: Date.now() })
-      })
-      .catch((err: unknown) => {
-        if (ctrl.signal.aborted) return
-        setState({ status: "error", message: err instanceof Error ? err.message : "unknown error" })
-      })
-
-    return () => ctrl.abort()
+    prefetchGithubRepos(username, limit)
   }, [username, limit])
 
   return state

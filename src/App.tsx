@@ -20,7 +20,7 @@ import { ContactIcon, type ContactIconKind } from "./components/ContactIcons"
 import { ParticleField, SceneChrome } from "./components/ParticleField"
 import { gradeInPacificGradeLevel, ordinalGrade } from "./lib/schoolGrade"
 import { useDecimalGregorianAgeYears } from "./hooks/useDecimalAge"
-import { formatRelative, useGithubRepos } from "./hooks/useGithubRepos"
+import { formatRelative, prefetchGithubRepos, useGithubRepos } from "./hooks/useGithubRepos"
 
 type PageId = "intro" | "bio" | "age" | "builds" | "contact"
 
@@ -111,8 +111,8 @@ function BioPage() {
     <div className="space-y-7 text-[15px] leading-[1.75]">
       <p className="m-0 text-[11px] uppercase tracking-[0.18em] text-white/55">02 · Bio</p>
       <p className="m-0 text-justify">
-        I have extensive experience in Python and Java. I am learning web development right now (this website being one
-        of my experiments). Feel free to{" "}
+        I have extensive experience in Python and Java. I like to code when it doesn't make me insane. I am learning web development right now (I still suck, this website being one
+        of my experiments). I also happen to have no life. Feel free to{" "}
         <a className={inlineLink} href={EMAIL_HREF}>
           contact me
         </a>{" "}
@@ -139,7 +139,7 @@ function AgePage(props: { ageYears: number }) {
           {ageText}
         </span>
         <span className="text-[clamp(0.875rem,2.75vw,1.25rem)] font-medium uppercase tracking-[0.08em] text-white/52">
-          years
+          years (so old)
         </span>
       </p>
       <p className="m-0 text-center text-[12px] uppercase tracking-[0.14em] text-white/45">
@@ -165,7 +165,7 @@ function BuildsPage() {
         <p className="m-0 text-[10px] uppercase tracking-[0.16em] text-white/42">Deployed</p>
         <p className="m-0 mt-1.5 text-[15px] font-semibold leading-tight text-white">stereo</p>
         <p className="m-0 mt-1 text-[13px] leading-[1.55] text-white/56">
-          Music-player UI experiment, live on Vercel.
+          Music-player UI experiment, live on Vercel. Spotify is probably better.
         </p>
         <p className="m-0 mt-2.5 text-[12px] text-white/45">
           <ExtLink href={LINK_STEREO_LIVE_HREF}>stereooffline.vercel.app</ExtLink>
@@ -397,26 +397,16 @@ function Slider(props: {
                 style={{ left: `${x}%` }}
                 type="button"
               >
-                <span
-                  aria-hidden
-                  className={`block rounded-full transition-[width,height,background-color,box-shadow] duration-300 ${
-                    i === index
-                      ? "h-[3px] w-[3px] bg-transparent shadow-[0_0_12px_rgba(255,255,255,0.5)]"
-                      : "h-[3px] w-[3px] bg-white/30"
-                  }`}
-                />
+                <span aria-hidden className={`block h-[3px] w-[3px] rounded-full ${i === index ? "bg-transparent" : "bg-white/30"}`} />
               </button>
             )
           })}
           <div
             aria-hidden
-            className="pointer-events-none absolute top-1/2 h-2.5 w-2.5 -translate-x-1/2 -translate-y-1/2 rounded-full bg-white shadow-[0_0_20px_rgba(255,255,255,0.45)] transition-[left,box-shadow] duration-[320ms] ease-out"
+            className="pointer-events-none absolute top-1/2 h-2.5 w-2.5 -translate-x-1/2 -translate-y-1/2 rounded-full bg-white transition-[left] duration-[320ms] ease-out"
             style={dotStyle}
           />
         </div>
-        <p className="mt-4 text-center text-[10px] font-medium uppercase tracking-[0.24em] text-white/42">
-          {pageLabel(index)}
-        </p>
       </div>
     </div>
   )
@@ -547,6 +537,7 @@ function App() {
 
   useEffect(() => {
     document.title = SITE_TITLE
+    prefetchGithubRepos(GITHUB_USERNAME, 8)
   }, [])
 
   const currentIndex = indexOfPage(pageId)

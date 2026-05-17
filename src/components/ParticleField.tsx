@@ -1,5 +1,7 @@
 import { useEffect, useRef } from "react"
 
+type ParticleKind = "dot" | "dust" | "sparkle"
+
 type Particle = {
   x: number
   y: number
@@ -7,50 +9,105 @@ type Particle = {
   vy: number
   r: number
   alpha: number
+  baseAlpha: number
   phase: number
+  twinkle: number
+  kind: ParticleKind
+}
+
+function particleCount(w: number): number {
+  if (w < 640) return 165
+  if (w < 1024) return 248
+  return 310
 }
 
 function seedParticles(w: number, h: number, count: number): Particle[] {
-  return Array.from({ length: count }, () => ({
-    x: Math.random() * w,
-    y: Math.random() * h,
-    vx: (Math.random() - 0.5) * 0.22,
-    vy: (Math.random() - 0.5) * 0.22,
-    r: Math.random() * 1.35 + 0.45,
-    alpha: Math.random() * 0.35 + 0.12,
-    phase: Math.random() * Math.PI * 2,
-  }))
+  return Array.from({ length: count }, (_, i) => {
+    const mod = i % 13
+    const kind: ParticleKind = mod === 0 ? "sparkle" : mod % 4 === 0 ? "dust" : "dot"
+    const r = kind === "sparkle" ? Math.random() * 1.1 + 0.9 : kind === "dust" ? Math.random() * 1.6 + 1 : Math.random() * 1.2 + 0.4
+    const baseAlpha =
+      kind === "sparkle" ? Math.random() * 0.25 + 0.35 : kind === "dust" ? Math.random() * 0.14 + 0.06 : Math.random() * 0.32 + 0.1
+    const x = Math.random() * w
+    const y = Math.random() * h
+    return {
+      x,
+      y,
+      vx: (Math.random() - 0.5) * 0.1,
+      vy: (Math.random() - 0.5) * 0.1,
+      r,
+      alpha: baseAlpha,
+      baseAlpha,
+      phase: Math.random() * Math.PI * 2,
+      twinkle: Math.random() * 2.4 + 0.6,
+      kind,
+    }
+  })
+}
+
+function pushParticlesFromPoint(pts: Particle[], x: number, y: number, strength: number, radius: number) {
+  for (const p of pts) {
+    const dx = p.x - x
+    const dy = p.y - y
+    const dist = Math.hypot(dx, dy)
+    if (dist >= radius || dist < 2) continue
+    const t = (radius - dist) / radius
+    const push = strength * t * t * 0.55
+    p.vx += (dx / dist) * push
+    p.vy += (dy / dist) * push
+    p.alpha = Math.min(0.82, p.alpha + 0.06 * t)
+  }
 }
 
 export function ParticleField(props: {
-  /** Changes on page switch — triggers drift burst. */
   pageKey: string
-  /** -1 left · 0 none · 1 right */
   navDirection: number
   enabled?: boolean
 }) {
   const canvasRef = useRef<HTMLCanvasElement | null>(null)
   const particlesRef = useRef<Particle[]>([])
-  const windRef = useRef({ x: 0, y: -0.04 })
+  const windRef = useRef({ x: 0, y: -0.045 })
+  const mouseRef = useRef({ x: -9999, y: -9999, active: false })
+  const clickPulseRef = useRef<{ x: number; y: number; strength: number } | null>(null)
   const sizeRef = useRef({ w: 0, h: 0 })
   const rafRef = useRef<number>(0)
   const reducedRef = useRef(false)
+  const navBurstRef = useRef<{ d: number; key: string } | null>(null)
+  const pageKeyRef = useRef(props.pageKey)
+
+  useEffect(() => {
+    pageKeyRef.current = props.pageKey
+  }, [props.pageKey])
 
   useEffect(() => {
     reducedRef.current = window.matchMedia("(prefers-reduced-motion: reduce)").matches
   }, [])
 
   useEffect(() => {
-    const d = props.navDirection
-    if (d === 0) return
-    windRef.current.x += d * 0.55
-    windRef.current.y += (Math.random() - 0.5) * 0.15
-
-    for (const p of particlesRef.current) {
-      p.vx += d * (1.8 + Math.random() * 1.4)
-      p.vy += (Math.random() - 0.5) * 1.2
-      p.alpha = Math.min(0.65, p.alpha + 0.18)
+    function onMove(e: PointerEvent) {
+      mouseRef.current = { x: e.clientX, y: e.clientY, active: true }
     }
+    function onLeave() {
+      mouseRef.current.active = false
+    }
+    function onPointerDown(e: PointerEvent) {
+      if (reducedRef.current) return
+      if (e.button !== 0) return
+      clickPulseRef.current = { x: e.clientX, y: e.clientY, strength: 3.2 }
+    }
+    window.addEventListener("pointermove", onMove, { passive: true })
+    window.addEventListener("pointerleave", onLeave)
+    window.addEventListener("pointerdown", onPointerDown, { capture: true })
+    return () => {
+      window.removeEventListener("pointermove", onMove)
+      window.removeEventListener("pointerleave", onLeave)
+      window.removeEventListener("pointerdown", onPointerDown, { capture: true })
+    }
+  }, [])
+
+  useEffect(() => {
+    if (props.navDirection === 0) return
+    navBurstRef.current = { d: props.navDirection, key: props.pageKey }
   }, [props.pageKey, props.navDirection])
 
   useEffect(() => {
@@ -74,9 +131,12 @@ export function ParticleField(props: {
       canvasEl.style.width = `${w}px`
       canvasEl.style.height = `${h}px`
       context.setTransform(dpr, 0, 0, dpr, 0, 0)
-      if (particlesRef.current.length === 0) {
-        const count = w < 640 ? 48 : w < 1024 ? 72 : 96
+      const count = particleCount(w)
+      const pts = particlesRef.current
+      if (pts.length === 0) {
         particlesRef.current = seedParticles(w, h, count)
+      } else if (pts.length < count) {
+        particlesRef.current = [...pts, ...seedParticles(w, h, count - pts.length)]
       }
     }
 
@@ -96,22 +156,61 @@ export function ParticleField(props: {
       t0 = now
       const reduced = reducedRef.current
       const driftScale = reduced ? 0.35 : 1
+      const mouse = mouseRef.current
+      const pts = particlesRef.current
 
-      windRef.current.x *= 0.992
-      windRef.current.y = windRef.current.y * 0.992 - 0.0025
+      const click = clickPulseRef.current
+      if (click && !reduced) {
+        clickPulseRef.current = null
+        pushParticlesFromPoint(pts, click.x, click.y, click.strength, 180)
+      }
+
+      const pending = navBurstRef.current
+      if (pending && pending.key === pageKeyRef.current) {
+        const d = pending.d
+        navBurstRef.current = null
+        windRef.current.x += d * 0.38
+        windRef.current.y += (Math.random() - 0.5) * 0.1
+        for (const p of pts) {
+          p.vx += d * (1.1 + Math.random() * 0.7)
+          p.vy += (Math.random() - 0.5) * 0.7
+        }
+      }
+
+      windRef.current.x *= 0.994
+      windRef.current.y = windRef.current.y * 0.994 - 0.0016
 
       context.clearRect(0, 0, w, h)
 
-      for (const p of particlesRef.current) {
-        const wobble = reduced ? 0 : Math.sin(now * 0.001 + p.phase) * 0.06
-        p.vx += (windRef.current.x + wobble) * 0.02 * dt
-        p.vy += (windRef.current.y + wobble) * 0.02 * dt
-        p.vx *= 0.985
-        p.vy *= 0.985
-        p.alpha += (0.22 - p.alpha) * 0.02 * dt
+      for (const p of pts) {
+        const wobble = reduced ? 0 : Math.sin(now * 0.001 + p.phase) * 0.025
+        p.vx += (windRef.current.x + wobble) * 0.01 * dt
+        p.vy += (windRef.current.y + wobble) * 0.01 * dt
+
+        if (!reduced && mouse.active) {
+          const dx = mouse.x - p.x
+          const dy = mouse.y - p.y
+          const dist = Math.hypot(dx, dy)
+          if (dist < 40 && dist > 3) {
+            const repel = ((40 - dist) / 40) * 0.022
+            p.vx -= (dx / dist) * repel * dt
+            p.vy -= (dy / dist) * repel * dt
+          } else if (dist < 120 && dist > 4) {
+            const pull = ((120 - dist) / 120) * 0.008
+            p.vx += (dx / dist) * pull * dt
+            p.vy += (dy / dist) * pull * dt
+          }
+        }
+
+        p.vx *= 0.992
+        p.vy *= 0.992
+
+        const tw = reduced ? 1 : 0.72 + 0.28 * Math.sin(now * 0.0018 * p.twinkle + p.phase)
+        const targetAlpha = p.baseAlpha * tw
+        p.alpha += (targetAlpha - p.alpha) * 0.04 * dt
 
         const speed = Math.hypot(p.vx, p.vy)
-        const cap = 2.8 * driftScale
+        const cap = (p.kind === "dust" ? 1.35 : p.kind === "sparkle" ? 1.85 : 1.55) * driftScale
         if (speed > cap) {
           p.vx = (p.vx / speed) * cap
           p.vy = (p.vy / speed) * cap
@@ -125,8 +224,9 @@ export function ParticleField(props: {
         if (p.y < -8) p.y = h + 8
         if (p.y > h + 8) p.y = -8
 
+        const drawR = p.kind === "sparkle" ? p.r * (0.92 + tw * 0.2) : p.r
         context.beginPath()
-        context.arc(p.x, p.y, p.r, 0, Math.PI * 2)
+        context.arc(p.x, p.y, drawR, 0, Math.PI * 2)
         context.fillStyle = `rgba(250, 250, 252, ${p.alpha})`
         context.fill()
       }
@@ -152,13 +252,7 @@ export function ParticleField(props: {
     }
   }, [props.enabled])
 
-  return (
-    <canvas
-      aria-hidden
-      className="pointer-events-none fixed inset-0 z-0"
-      ref={canvasRef}
-    />
-  )
+  return <canvas aria-hidden className="pointer-events-none fixed inset-0 z-0" ref={canvasRef} />
 }
 
 export function SceneChrome() {
