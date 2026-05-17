@@ -12,35 +12,104 @@ type Particle = {
   baseAlpha: number
   phase: number
   twinkle: number
+  wobbleAmp: number
+  speedCap: number
   kind: ParticleKind
 }
 
-function particleCount(w: number): number {
-  if (w < 640) return 165
-  if (w < 1024) return 248
-  return 310
+function particleCount(w: number, h: number): number {
+  const area = w * h
+  const target = Math.round(area * 0.00078)
+  if (w < 640) return Math.min(450, Math.max(345, target))
+  if (w < 1024) return Math.min(630, Math.max(510, target))
+  return Math.min(780, Math.max(600, target))
+}
+
+function particleTraits(): { kind: ParticleKind; r: number; baseAlpha: number; speedCap: number; wobbleAmp: number } {
+  const roll = Math.random()
+  if (roll < 0.2) {
+    return {
+      kind: "dot",
+      r: 0.14 + Math.random() * 0.28,
+      baseAlpha: 0.04 + Math.random() * 0.1,
+      speedCap: 0.85 + Math.random() * 0.5,
+      wobbleAmp: 0.008 + Math.random() * 0.02,
+    }
+  }
+  if (roll < 0.42) {
+    return {
+      kind: "dot",
+      r: 0.38 + Math.random() * 0.55,
+      baseAlpha: 0.08 + Math.random() * 0.18,
+      speedCap: 1 + Math.random() * 0.65,
+      wobbleAmp: 0.012 + Math.random() * 0.028,
+    }
+  }
+  if (roll < 0.62) {
+    return {
+      kind: "dot",
+      r: 0.7 + Math.random() * 0.95,
+      baseAlpha: 0.1 + Math.random() * 0.22,
+      speedCap: 1.15 + Math.random() * 0.75,
+      wobbleAmp: 0.015 + Math.random() * 0.032,
+    }
+  }
+  if (roll < 0.78) {
+    return {
+      kind: "dust",
+      r: 1.05 + Math.random() * 1.15,
+      baseAlpha: 0.05 + Math.random() * 0.12,
+      speedCap: 0.95 + Math.random() * 0.55,
+      wobbleAmp: 0.01 + Math.random() * 0.022,
+    }
+  }
+  if (roll < 0.9) {
+    return {
+      kind: "dust",
+      r: 1.9 + Math.random() * 1.45,
+      baseAlpha: 0.07 + Math.random() * 0.14,
+      speedCap: 1.05 + Math.random() * 0.6,
+      wobbleAmp: 0.014 + Math.random() * 0.026,
+    }
+  }
+  if (roll < 0.97) {
+    return {
+      kind: "dust",
+      r: 2.8 + Math.random() * 1.8,
+      baseAlpha: 0.09 + Math.random() * 0.16,
+      speedCap: 1.2 + Math.random() * 0.7,
+      wobbleAmp: 0.018 + Math.random() * 0.03,
+    }
+  }
+  return {
+    kind: "sparkle",
+    r: 2.6 + Math.random() * 2.4,
+    baseAlpha: 0.22 + Math.random() * 0.35,
+    speedCap: 1.4 + Math.random() * 0.9,
+    wobbleAmp: 0.02 + Math.random() * 0.04,
+  }
 }
 
 function seedParticles(w: number, h: number, count: number): Particle[] {
-  return Array.from({ length: count }, (_, i) => {
-    const mod = i % 13
-    const kind: ParticleKind = mod === 0 ? "sparkle" : mod % 4 === 0 ? "dust" : "dot"
-    const r = kind === "sparkle" ? Math.random() * 1.1 + 0.9 : kind === "dust" ? Math.random() * 1.6 + 1 : Math.random() * 1.2 + 0.4
-    const baseAlpha =
-      kind === "sparkle" ? Math.random() * 0.25 + 0.35 : kind === "dust" ? Math.random() * 0.14 + 0.06 : Math.random() * 0.32 + 0.1
+  return Array.from({ length: count }, () => {
+    const traits = particleTraits()
+    const drift = 0.035 + Math.random() * 0.14
+    const angle = Math.random() * Math.PI * 2
     const x = Math.random() * w
     const y = Math.random() * h
     return {
       x,
       y,
-      vx: (Math.random() - 0.5) * 0.1,
-      vy: (Math.random() - 0.5) * 0.1,
-      r,
-      alpha: baseAlpha,
-      baseAlpha,
+      vx: Math.cos(angle) * drift,
+      vy: Math.sin(angle) * drift,
+      r: traits.r,
+      alpha: traits.baseAlpha,
+      baseAlpha: traits.baseAlpha,
       phase: Math.random() * Math.PI * 2,
-      twinkle: Math.random() * 2.4 + 0.6,
-      kind,
+      twinkle: 0.35 + Math.random() * 3.8,
+      wobbleAmp: traits.wobbleAmp,
+      speedCap: traits.speedCap,
+      kind: traits.kind,
     }
   })
 }
@@ -131,7 +200,7 @@ export function ParticleField(props: {
       canvasEl.style.width = `${w}px`
       canvasEl.style.height = `${h}px`
       context.setTransform(dpr, 0, 0, dpr, 0, 0)
-      const count = particleCount(w)
+      const count = particleCount(w, h)
       const pts = particlesRef.current
       if (pts.length === 0) {
         particlesRef.current = seedParticles(w, h, count)
@@ -183,7 +252,7 @@ export function ParticleField(props: {
       context.clearRect(0, 0, w, h)
 
       for (const p of pts) {
-        const wobble = reduced ? 0 : Math.sin(now * 0.001 + p.phase) * 0.025
+        const wobble = reduced ? 0 : Math.sin(now * 0.001 * p.twinkle + p.phase) * p.wobbleAmp
         p.vx += (windRef.current.x + wobble) * 0.01 * dt
         p.vy += (windRef.current.y + wobble) * 0.01 * dt
 
@@ -205,12 +274,12 @@ export function ParticleField(props: {
         p.vx *= 0.992
         p.vy *= 0.992
 
-        const tw = reduced ? 1 : 0.72 + 0.28 * Math.sin(now * 0.0018 * p.twinkle + p.phase)
+        const tw = reduced ? 1 : 0.65 + 0.35 * Math.sin(now * 0.0016 * p.twinkle + p.phase * 1.3)
         const targetAlpha = p.baseAlpha * tw
-        p.alpha += (targetAlpha - p.alpha) * 0.04 * dt
+        p.alpha += (targetAlpha - p.alpha) * (0.025 + p.twinkle * 0.006) * dt
 
         const speed = Math.hypot(p.vx, p.vy)
-        const cap = (p.kind === "dust" ? 1.35 : p.kind === "sparkle" ? 1.85 : 1.55) * driftScale
+        const cap = p.speedCap * driftScale
         if (speed > cap) {
           p.vx = (p.vx / speed) * cap
           p.vy = (p.vy / speed) * cap
@@ -224,10 +293,11 @@ export function ParticleField(props: {
         if (p.y < -8) p.y = h + 8
         if (p.y > h + 8) p.y = -8
 
-        const drawR = p.kind === "sparkle" ? p.r * (0.92 + tw * 0.2) : p.r
+        const drawR = p.kind === "sparkle" ? p.r * (0.88 + tw * 0.28) : p.r * (0.96 + tw * 0.06)
+        const tint = p.kind === "dust" ? 242 : p.kind === "sparkle" ? 255 : 248
         context.beginPath()
         context.arc(p.x, p.y, drawR, 0, Math.PI * 2)
-        context.fillStyle = `rgba(250, 250, 252, ${p.alpha})`
+        context.fillStyle = `rgba(${tint}, ${tint}, ${tint + (p.kind === "sparkle" ? 0 : 2)}, ${p.alpha})`
         context.fill()
       }
 
