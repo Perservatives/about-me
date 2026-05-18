@@ -111,7 +111,7 @@ function BioPage() {
     <div className="space-y-7 text-[15px] leading-[1.75]">
       <p className="m-0 text-[11px] uppercase tracking-[0.18em] text-white/55">02 · Bio</p>
       <p className="m-0 text-justify">
-        I have extensive experience in Python and Java. I like to code when it doesn't make me insane. I am learning web development right now (I still suck, this website being one
+        Hi! I'm a stupid teenager who needs to add something to his portfolio.I have extensive experience in Python and Java. I like to code when it doesn't make me insane. I am learning web development right now (I still suck, this website being one
         of my experiments). I also happen to have no life. Feel free to{" "}
         <a className={inlineLink} href={EMAIL_HREF}>
           contact me
@@ -165,7 +165,7 @@ function BuildsPage() {
         <p className="m-0 text-[10px] uppercase tracking-[0.16em] text-white/42">Deployed</p>
         <p className="m-0 mt-1.5 text-[15px] font-semibold leading-tight text-white">stereo</p>
         <p className="m-0 mt-1 text-[13px] leading-[1.55] text-white/56">
-          Music-player UI experiment, live on Vercel. Spotify is probably better.
+          Spotify but free and worse, live on Vercel. Spotify is probably better. (gimme feedback pls)
         </p>
         <p className="m-0 mt-2.5 text-[12px] text-white/45">
           <ExtLink href={LINK_STEREO_LIVE_HREF}>stereooffline.vercel.app</ExtLink>
