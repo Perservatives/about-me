@@ -111,7 +111,7 @@ function BioPage() {
     <div className="space-y-7 text-[15px] leading-[1.75]">
       <p className="m-0 text-[11px] uppercase tracking-[0.18em] text-white/55">02 · Bio</p>
       <p className="m-0 text-justify">
-        Hi! I'm a stupid teenager who needs to add something to his portfolio.I have extensive experience in Python and Java. I like to code when it doesn't make me insane. I am learning web development right now (I still suck, this website being one
+        Hi! I'm a stupid teenager who needs to add something to his portfolio. I have extensive experience in Python and Java. I like to code when it doesn't make me insane. I am learning web development right now (I still suck, this website being one
         of my experiments). I also happen to have no life. Feel free to{" "}
         <a className={inlineLink} href={EMAIL_HREF}>
           contact me
