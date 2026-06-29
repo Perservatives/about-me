@@ -1,19 +1,21 @@
 "use client";
 
 import { useEffect, useRef } from "react";
+import { nearestLoadedIndex } from "@/lib/frameSequence";
 import { useScrollStore } from "@/lib/store";
 
 /**
  * Scroll-scrubbed image sequence drawn to a canvas.
- * Unlike seeking a video, drawing a preloaded frame has no decode-pipeline
- * overhead — so scrubbing stays smooth and never shows half-decoded frames.
+ * Frames load progressively — the nearest ready frame is shown until the target arrives.
  */
 export function NatureScrubFrames({
   frames,
   onFirst,
+  onNeedFrame,
 }: {
-  frames: Blob[];
+  frames: readonly (Blob | null)[];
   onFirst?: () => void;
+  onNeedFrame?: (index: number) => void;
 }) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
 
@@ -34,7 +36,7 @@ export function NatureScrubFrames({
       const dpr = Math.min(window.devicePixelRatio || 1, 2);
       canvas.width = Math.max(1, Math.round(canvas.clientWidth * dpr));
       canvas.height = Math.max(1, Math.round(canvas.clientHeight * dpr));
-      drawnIndex = -1; // force a redraw at the new size
+      drawnIndex = -1;
     };
 
     const drawCover = (bmp: ImageBitmap) => {
@@ -58,6 +60,16 @@ export function NatureScrubFrames({
     };
 
     const show = async (index: number) => {
+      const blob = frames[index];
+      if (!blob) {
+        onNeedFrame?.(index);
+        const fallback = nearestLoadedIndex(frames, index);
+        if (fallback >= 0 && fallback !== drawnIndex) {
+          await show(fallback);
+        }
+        return;
+      }
+
       const cached = cache.get(index);
       if (cached) {
         drawCover(cached);
@@ -71,7 +83,7 @@ export function NatureScrubFrames({
       if (decoding) return;
       decoding = true;
       try {
-        const bmp = await createImageBitmap(frames[index]);
+        const bmp = await createImageBitmap(blob);
         cache.set(index, bmp);
         if (cache.size > MAX_CACHE) {
           const oldest = cache.keys().next().value as number | undefined;
@@ -92,8 +104,6 @@ export function NatureScrubFrames({
       decoding = false;
     };
 
-    // The reel completes by REEL_END; past that the final frame holds while the
-    // email outro shows — so no video frames play after the email appears.
     const REEL_END = 0.92;
     const loop = () => {
       const p = useScrollStore.getState().progress;
@@ -116,7 +126,7 @@ export function NatureScrubFrames({
       cache.forEach((b) => b.close());
       cache.clear();
     };
-  }, [frames, onFirst]);
+  }, [frames, onFirst, onNeedFrame]);
 
   return (
     <canvas

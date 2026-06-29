@@ -7,7 +7,7 @@ export function Preloader({ progress, done }: { progress: number; done: boolean 
 
   useEffect(() => {
     if (done) {
-      const id = setTimeout(() => setHidden(true), 900);
+      const id = setTimeout(() => setHidden(true), 450);
       return () => clearTimeout(id);
     }
   }, [done]);
