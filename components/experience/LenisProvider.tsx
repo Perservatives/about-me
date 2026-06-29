@@ -36,17 +36,15 @@ export function LenisProvider({ children }: { children: React.ReactNode }) {
     let syncing = false;
     let lastCommitted = -1;
 
-    let lenis!: Lenis;
-
     const FRICTION = 0.91;
-    const IMPART = 1;
+    const IMPART = 0.5;
 
     const impart = (deltaProgress: number) => {
       if (reducedMotion || Math.abs(deltaProgress) < 1e-7) return;
       velocity += deltaProgress * IMPART;
     };
 
-    lenis = new Lenis({
+    const lenis = new Lenis({
       smoothWheel: false,
       syncTouch: false,
       content: document.body,

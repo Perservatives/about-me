@@ -10,7 +10,7 @@ import { prefetchGithubRepos } from "@/hooks/useGithubRepos";
 import { GITHUB_USERNAME } from "@/lib/sections";
 
 /** Relaxed scrub length — taller track = slower, calmer scrubbing of the reel. */
-const SCROLL_VH = 2800;
+const SCROLL_VH = 5600;
 const FRAMES_DIR = "/assets/frames";
 
 async function fetchInPool<T>(

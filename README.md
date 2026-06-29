@@ -30,6 +30,12 @@ Open [http://localhost:3000](http://localhost:3000).
 
 Frame JPEGs live in `public/assets/frames/` (~129MB). First visit preloads the sequence; a progress bar covers load time.
 
-## Deploy
+## Deploy (Vercel)
 
-Static-friendly Next export or Vercel. Ensure `public/assets/frames/` ships with the deploy — the experience depends on it.
+1. Import the GitHub repo — framework should auto-detect **Next.js**.
+2. In **Project Settings → Build & Development Settings**, clear any overrides:
+   - **Output Directory** must be **empty** (not `dist` from the old Vite site).
+   - **Build Command** should be `next build` or empty (default).
+3. Node **20+** (see `.nvmrc`).
+
+Static assets in `public/assets/frames/` must deploy with the build (~129MB of JPEGs).

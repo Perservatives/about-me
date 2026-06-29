@@ -13,7 +13,7 @@ export function Nav() {
 
   return (
     <nav
-      className="pointer-events-auto fixed top-1/2 z-50 hidden -translate-y-1/2 flex-col gap-4 md:flex"
+      className="pointer-events-auto fixed top-1/2 z-[60] hidden -translate-y-1/2 flex-col gap-3 md:flex"
       style={{ right: "max(1rem, env(safe-area-inset-right, 0px))" }}
       aria-label="Section progress"
     >
@@ -22,18 +22,18 @@ export function Nav() {
           key={section.id}
           type="button"
           onClick={() => scrollToSection(section.id as SectionId)}
-          className="flex h-6 w-6 items-center justify-center"
+          className="pointer-events-auto flex h-11 w-11 cursor-pointer items-center justify-center rounded-full transition-colors hover:bg-white/10"
           aria-label={section.label}
           aria-current={active === section.id ? "step" : undefined}
           title={section.label}
         >
           <span
-            className="block rounded-full border border-white/40 transition-all duration-300"
+            className="pointer-events-none block rounded-full border border-white/50 transition-all duration-300"
             style={{
-              width: active === section.id ? 10 : 8,
-              height: active === section.id ? 10 : 8,
+              width: active === section.id ? 12 : 9,
+              height: active === section.id ? 12 : 9,
               backgroundColor:
-                active === section.id ? "rgba(255,255,255,0.9)" : "transparent",
+                active === section.id ? "rgba(255,255,255,0.95)" : "transparent",
             }}
           />
         </button>

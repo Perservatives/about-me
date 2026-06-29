@@ -41,7 +41,7 @@ function TextPanel({
 
   return (
     <div
-      className={`nat-panel rounded-lg px-5 py-4 md:px-6 md:py-5 ${alignClass} ${className}`}
+      className={`nat-panel pointer-events-auto rounded-lg px-5 py-4 md:px-6 md:py-5 ${alignClass} ${className}`}
     >
       {children}
     </div>
@@ -155,7 +155,7 @@ function LatestRepos() {
 export function NatureText() {
   return (
     <div
-      className="absolute inset-0 z-30 box-border max-md:pr-4"
+      className="pointer-events-none absolute inset-0 z-30 box-border max-md:pr-4"
       style={{ paddingRight: `max(1rem, calc(${NAV_GUTTER_PX}px + env(safe-area-inset-right, 0px)))` }}
     >
       <Block

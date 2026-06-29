@@ -29,8 +29,7 @@ export function scrollToSection(id: SectionId) {
   const progress = index / Math.max(1, SECTIONS.length - 1);
 
   if (velocityControls) {
-    const current = velocityControls.getPlayhead();
-    velocityControls.impart((progress - current) * 0.45);
+    velocityControls.scrollToProgress(progress);
     return;
   }
 
