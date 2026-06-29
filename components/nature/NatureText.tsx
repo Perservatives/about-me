@@ -184,7 +184,7 @@ export function NatureText() {
         start={0.33}
         end={0.47}
         panelAlign="right"
-        className="right-8 top-[30%] max-w-sm md:right-12"
+        className="right-14 top-[30%] max-w-sm md:right-28"
       >
         <p className="nat-text text-[11px] tracking-[0.35em] text-white/65 uppercase">
           Bio

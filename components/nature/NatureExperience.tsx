@@ -19,13 +19,17 @@ import { useScrollStore } from "@/lib/store";
 
 /** Relaxed scrub length — taller track = slower, calmer scrubbing of the reel. */
 const SCROLL_VH = 5600;
-const INITIAL_BURST = 48;
-const POOL_SIZE = 20;
+/** Opening scroll segment — load this range before revealing (still far less than the full reel). */
+const INITIAL_BURST = 40;
+const POOL_SIZE = 24;
+const SETTLE_MS = 220;
 
 export function NatureExperience() {
   const [loadProgress, setLoadProgress] = useState(0);
   const [frames, setFrames] = useState<(Blob | null)[] | null>(null);
   const [firstPainted, setFirstPainted] = useState(false);
+  const [initialReady, setInitialReady] = useState(false);
+  const [revealed, setRevealed] = useState(false);
   const framesRef = useRef<(Blob | null)[]>([]);
   const loadingRef = useRef<Set<number>>(new Set());
   const frameCountRef = useRef(0);
@@ -60,8 +64,8 @@ export function NatureExperience() {
       const pending = indices.filter(
         (idx) => !framesRef.current[idx] && !loadingRef.current.has(idx),
       );
-      if (pending.length === 0) return;
-      void fetchInPool(pending, POOL_SIZE, async (idx) => loadOne(idx));
+      if (pending.length === 0) return Promise.resolve();
+      return fetchInPool(pending, POOL_SIZE, async (idx) => loadOne(idx));
     };
 
     (async () => {
@@ -71,20 +75,39 @@ export function NatureExperience() {
         frameCountRef.current = count;
         framesRef.current = new Array<Blob | null>(count).fill(null);
 
-        await loadOne(0);
+        const burstEnd = Math.min(INITIAL_BURST, count);
+        const burstIndices = Array.from({ length: burstEnd }, (_, i) => i);
+
+        const burstPromise = loadMany(burstIndices);
+
+        while (!cancelled && !framesRef.current[0]) {
+          await new Promise((resolve) => setTimeout(resolve, 16));
+        }
         if (cancelled) return;
 
+        try {
+          const warmed = await createImageBitmap(framesRef.current[0]!);
+          warmed.close();
+        } catch {
+          /* first frame decode failed — canvas will retry */
+        }
+
         setFrames(framesRef.current);
-        loadMany(Array.from({ length: Math.min(INITIAL_BURST, count) }, (_, i) => i));
+
+        await burstPromise;
+        if (!cancelled) setInitialReady(true);
 
         const remaining = Array.from({ length: count }, (_, i) => i).filter(
-          (i) => i >= INITIAL_BURST,
+          (i) => i >= burstEnd,
         );
         await fetchInPool(remaining, POOL_SIZE, async (idx) => loadOne(idx));
 
         if (!cancelled) setLoadProgress(1);
       } catch {
-        if (!cancelled) setLoadProgress(1);
+        if (!cancelled) {
+          setInitialReady(true);
+          setLoadProgress(1);
+        }
       }
     })();
 
@@ -101,6 +124,27 @@ export function NatureExperience() {
       unsub();
     };
   }, []);
+
+  useEffect(() => {
+    if (!firstPainted || !initialReady) return;
+
+    let cancelled = false;
+    let timeoutId = 0;
+
+    const frameId = requestAnimationFrame(() => {
+      requestAnimationFrame(() => {
+        timeoutId = window.setTimeout(() => {
+          if (!cancelled) setRevealed(true);
+        }, SETTLE_MS);
+      });
+    });
+
+    return () => {
+      cancelled = true;
+      cancelAnimationFrame(frameId);
+      window.clearTimeout(timeoutId);
+    };
+  }, [firstPainted, initialReady]);
 
   const requestFrame = (index: number) => {
     if (
@@ -127,28 +171,36 @@ export function NatureExperience() {
 
   return (
     <>
-      <div className="pointer-events-none fixed inset-0 z-0 overflow-hidden bg-[#07120c]">
-        {frames && (
-          <NatureScrubFrames
-            frames={framesRef.current}
-            onFirst={() => setFirstPainted(true)}
-            onNeedFrame={requestFrame}
-          />
-        )}
+      <div
+        className="transition-opacity duration-1000 ease-out"
+        style={{
+          opacity: revealed ? 1 : 0,
+          pointerEvents: revealed ? undefined : "none",
+        }}
+        aria-hidden={!revealed}
+      >
+        <div className="pointer-events-none fixed inset-0 z-0 overflow-hidden bg-[#07120c]">
+          {frames && (
+            <NatureScrubFrames
+              frames={framesRef.current}
+              onFirst={() => setFirstPainted(true)}
+              onNeedFrame={requestFrame}
+            />
+          )}
 
-        {/* Minimal scrims only where text sits — kept light so the footage stays vivid and crisp */}
-        <div className="pointer-events-none absolute inset-0 bg-gradient-to-b from-black/15 via-transparent to-black/28" />
-        <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_at_center,transparent_68%,rgba(0,0,0,0.2)_100%)]" />
+          <div className="pointer-events-none absolute inset-0 bg-gradient-to-b from-black/15 via-transparent to-black/28" />
+          <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_at_center,transparent_68%,rgba(0,0,0,0.2)_100%)]" />
 
-        <NatureText />
+          <NatureText />
+        </div>
+
+        <Nav />
+        <ScrollHint />
+
+        <div id="scroll-root" style={{ height: `${SCROLL_VH}vh` }} aria-hidden />
       </div>
 
-      <Nav />
-      <ScrollHint />
-
-      <div id="scroll-root" style={{ height: `${SCROLL_VH}vh` }} aria-hidden />
-
-      <Preloader progress={loadProgress} done={firstPainted} />
+      <Preloader progress={loadProgress} done={revealed} />
     </>
   );
 }

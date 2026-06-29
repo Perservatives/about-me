@@ -33,7 +33,9 @@ export default function RootLayout({
   return (
     <html lang="en" className={`${instrumentSerif.variable} ${inter.variable}`}>
       <head>
-        <link rel="preload" as="image" href="/assets/frames/f0001.jpg" />
+        <link rel="preload" as="image" href="/assets/frames/f0001.jpg" fetchPriority="high" />
+        <link rel="preload" as="image" href="/assets/frames/f0002.jpg" />
+        <link rel="preload" as="image" href="/assets/frames/f0003.jpg" />
       </head>
       <body className="antialiased">
         <LenisProvider>{children}</LenisProvider>

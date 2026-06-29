@@ -32,13 +32,6 @@ export function NatureScrubFrames({
     let decoding = false;
     let firstDone = false;
 
-    const resize = () => {
-      const dpr = Math.min(window.devicePixelRatio || 1, 2);
-      canvas.width = Math.max(1, Math.round(canvas.clientWidth * dpr));
-      canvas.height = Math.max(1, Math.round(canvas.clientHeight * dpr));
-      drawnIndex = -1;
-    };
-
     const drawCover = (bmp: ImageBitmap) => {
       const cw = canvas.width;
       const ch = canvas.height;
@@ -57,6 +50,26 @@ export function NatureScrubFrames({
         dx = (cw - dw) / 2;
       }
       ctx.drawImage(bmp, dx, dy, dw, dh);
+    };
+
+    const redrawCached = (index: number) => {
+      const cached = cache.get(index);
+      if (!cached) return false;
+      drawCover(cached);
+      return true;
+    };
+
+    const resize = () => {
+      const dpr = Math.min(window.devicePixelRatio || 1, 2);
+      const nextW = Math.max(1, Math.round(canvas.clientWidth * dpr));
+      const nextH = Math.max(1, Math.round(canvas.clientHeight * dpr));
+      if (nextW === canvas.width && nextH === canvas.height) return;
+
+      canvas.width = nextW;
+      canvas.height = nextH;
+
+      if (drawnIndex >= 0 && redrawCached(drawnIndex)) return;
+      drawnIndex = -1;
     };
 
     const show = async (index: number) => {

@@ -6,10 +6,9 @@ export function Preloader({ progress, done }: { progress: number; done: boolean 
   const [hidden, setHidden] = useState(false);
 
   useEffect(() => {
-    if (done) {
-      const id = setTimeout(() => setHidden(true), 450);
-      return () => clearTimeout(id);
-    }
+    if (!done) return;
+    const id = window.setTimeout(() => setHidden(true), 1100);
+    return () => window.clearTimeout(id);
   }, [done]);
 
   if (hidden) return null;
@@ -18,7 +17,7 @@ export function Preloader({ progress, done }: { progress: number; done: boolean 
 
   return (
     <div
-      className="fixed inset-0 z-[100] flex flex-col items-center justify-center bg-[#07120c] transition-opacity duration-700"
+      className="fixed inset-0 z-[100] flex flex-col items-center justify-center bg-[#07120c] transition-opacity duration-1000 ease-out"
       style={{ opacity: done ? 0 : 1, pointerEvents: done ? "none" : "auto" }}
       aria-hidden={done}
     >

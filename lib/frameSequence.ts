@@ -41,6 +41,16 @@ export function reelFrameIndex(
   );
 }
 
+export function isRangeLoaded(
+  frames: readonly (Blob | null)[],
+  endExclusive: number,
+) {
+  for (let i = 0; i < endExclusive; i++) {
+    if (!frames[i]) return false;
+  }
+  return true;
+}
+
 /** Nearest loaded frame at or before index, else after. */
 export function nearestLoadedIndex(
   frames: readonly (Blob | null)[],
